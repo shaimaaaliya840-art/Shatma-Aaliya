@@ -118,8 +118,8 @@ export const OrbitalBackground: React.FC = () => {
     const uTime = gl.getUniformLocation(prog, 'uTime');
     const uRes  = gl.getUniformLocation(prog, 'uRes');
     const uLocs = [1,2,3,4,5,6,7].map(i => ({
-      c: gl.getUniformLocation(prog, \`uC\${i}\`),
-      a: gl.getUniformLocation(prog, \`uA\${i}\`)
+      c: gl.getUniformLocation(prog, `uC${i}`),
+      a: gl.getUniformLocation(prog, `uA${i}`)
     }));
 
     // Scheme Engine style exact palette
