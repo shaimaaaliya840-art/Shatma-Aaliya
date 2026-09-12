@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shatma Aaliya — Fashion Design Portfolio</title>
+
+  <!-- External Libraries via CDN -->
+  <!-- Lenis Smooth Scroll -->
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.14/dist/lenis.min.js"></script>
+  <!-- GSAP + ScrollTrigger + SplitText (via CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+
+  <style>
+    /* ═══════════════════════════════════════════════
+       CSS CUSTOM PROPERTIES — SCHEME ENGINE TOKENS
+    ═══════════════════════════════════════════════ */
+    :root {
+      --bg:         #0a050f;
+      --purple:     #140D16;
+      --brown:      #D18221;
+      --white:      #FEF9EF;
+      --maroon:     #58111A;
+      --maroon-2:   #7A1926;
+      --border:     #34203A;
+      --panel:      #1C131F;
+      --space:      10vw;
+      --nav-h:      4.5rem;
+    }
+
+    /* ═══════════════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      font-size: clamp(12px, 0.78vw + 0.3rem, 18px);
+      overscroll-behavior: none;
+      background: var(--bg);
+    }
+
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--white);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* ═══════════════════════════════════════════════
+       CUSTOM CURSOR
+    ═══════════════════════════════════════════════ */
+    #cursor {
+      position: fixed;
+      width: 10px; height: 10px;
+      background: var(--maroon);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      transition: transform 0.05s linear;
+      mix-blend-mode: normal;
+    }
+    #cursor-halo {
+      position: fixed;
+      width: 40px; height: 40px;
+      border: 1.5px solid var(--brown);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9998;
+      transform: translate(-50%, -50%);
+      transition: transform 0.12s ease, width 0.25s ease, height 0.25s ease, opacity 0.25s ease;
+      opacity: 0.7;
+    }
+    body:has(a:hover) #cursor-halo,
+    body:has(button:hover) #cursor-halo {
+      width: 60px; height: 60px;
+      opacity: 0.4;
+    }
+
+    /* ═══════════════════════════════════════════════
+       WEBGL CANVAS BACKGROUND (fullscreen, fixed)
+    ═══════════════════════════════════════════════ */
+    #glCanvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      z-index: 0;
+      display: block;
+    }
+
+    /* ═══════════════════════════════════════════════
+       SHADER CONTROL PANEL
+    ═══════════════════════════════════════════════ */
+    #shaderControls {
+      position: fixed;
+      top: 1.2rem; left: 1.2rem;
+      z-index: 200;
+      font-family: 'Courier New', monospace;
+      font-size: 0.72rem;
+    }
+    #shaderToggle {
+      background: rgba(0,0,0,0.8);
+      border: 1px solid var(--border);
+      color: var(--brown);
+      padding: 0.4rem 0.85rem;
+      cursor: none;
+      letter-spacing: 0.1em;
+      font-family: inherit;
+      font-size: inherit;
+      transition: background 0.2s;
+    }
+    #shaderToggle:hover { background: var(--panel); }
+    #shaderPanel {
+      background: rgba(8,4,12,0.92);
+      border: 1px solid var(--border);
+      padding: 1rem;
+      margin-top: 0.5rem;
+      max-width: 280px;
+      max-height: 80vh;
+      overflow-y: auto;
+      display: none;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    #shaderPanel.open { display: block; }
+    #shaderPanel h3 { color: var(--white); margin-bottom: 0.8rem; font-size: 0.8rem; letter-spacing: 0.15em; }
+    .ctrl-section { margin-bottom: 0.8rem; border-bottom: 1px solid var(--border); padding-bottom: 0.8rem; }
+    .ctrl-section:last-child { border-bottom: none; }
+    .ctrl-label { color: var(--brown); font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; display: flex; justify-content: space-between; margin-bottom: 0.3rem; }
+    .ctrl-row { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.3rem; }
+    .ctrl-row label { color: #aaa; font-size: 0.6rem; width: 1rem; flex-shrink: 0; }
+    .ctrl-row input[type=range] { flex: 1; height: 3px; accent-color: var(--brown); }
+    .ctrl-row input[type=number] { width: 38px; background: #111; border: 1px solid var(--border); color: var(--white); padding: 2px 4px; font-size: 0.6rem; font-family: inherit; }
+    .color-preview { height: 16px; border: 1px solid var(--border); margin-top: 0.3rem; border-radius: 2px; }
+    .ctrl-btns { display: flex; gap: 0.5rem; margin-bottom: 0.8rem; }
+    .ctrl-btns button {
+      flex: 1; background: #111; border: 1px solid var(--border);
+      color: var(--white); padding: 0.3rem; font-size: 0.65rem; font-family: inherit;
+      cursor: none; letter-spacing: 0.1em; transition: background 0.2s;
+    }
+    .ctrl-btns button:hover { background: var(--maroon); border-color: var(--maroon-2); }
+
+    /* ═══════════════════════════════════════════════
+       NAVIGATION
+    ═══════════════════════════════════════════════ */
+    header {
+      position: fixed;
+      top: 0; left: 0; width: 100%;
+      z-index: 100;
+      padding: 1.4rem var(--space);
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 1rem;
+    }
+    .nav-left, .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+    .nav-right { justify-content: flex-end; }
+    .nav-link {
+      font-size: 0.75rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(254,249,239,0.65);
+      position: relative;
+      overflow: hidden;
+      transition: color 0.3s;
+    }
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: -2px; left: 0;
+      width: 0%; height: 1px;
+      background: var(--brown);
+      transition: width 0.35s cubic-bezier(0.25,0.46,0.45,0.94);
+    }
+    .nav-link:hover { color: var(--white); }
+    .nav-link:hover::after { width: 100%; }
+
+    /* Center brand logo / monogram */
+    .brand-monogram {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    .brand-monogram .mono-badge {
+      background: var(--maroon);
+      border: 1px solid var(--maroon-2);
+      color: var(--white);
+      font-size: 0.6rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      padding: 0.18rem 0.6rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .brand-monogram .mono-name {
+      font-size: 0.72rem;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: rgba(254,249,239,0.5);
+      margin-top: 0.3rem;
+    }
+
+    /* ═══════════════════════════════════════════════
+       PAGE WRAPPER & SECTIONS
+    ═══════════════════════════════════════════════ */
+    #page-wrapper {
+      position: relative;
+      z-index: 10;
+    }
+
+    /* ─── HERO SECTION ─── */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--nav-h) var(--space) 4rem;
+      position: relative;
+    }
+    .hero-inner {
+      max-width: 680px;
+      text-align: center;
+    }
+    .hero-kicker {
+      font-size: 0.65rem;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--brown);
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.8rem;
+    }
+    .hero-kicker::before,
+    .hero-kicker::after {
+      content: '';
+      display: block;
+      width: 2rem;
+      height: 1px;
+      background: var(--brown);
+      opacity: 0.6;
+    }
+    .hero-h1 {
+      font-size: clamp(2.2rem, 5vw, 5rem);
+      font-weight: 700;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      color: var(--white);
+      margin-bottom: 2rem;
+    }
+    .hero-h1 .highlight {
+      color: var(--brown);
+      font-style: italic;
+    }
+    .hero-body {
+      font-size: 0.92rem;
+      line-height: 1.75;
+      color: rgba(254,249,239,0.65);
+      max-width: 500px;
+      margin: 0 auto 1.6rem;
+    }
+    .cta-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--white);
+      border-bottom: 1px solid rgba(254,249,239,0.25);
+      padding-bottom: 0.25rem;
+      transition: color 0.3s, border-color 0.3s;
+      cursor: none;
+    }
+    .cta-link:hover { color: var(--brown); border-color: var(--brown); }
+    .cta-link svg { width: 1rem; height: 1rem; fill: currentColor; }
+
+    /* Corner meta badges */
+    .hero-meta {
+      position: absolute;
+      bottom: 2.5rem;
+      left: var(--space);
+      right: var(--space);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .meta-badge {
+      font-size: 0.55rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(254,249,239,0.35);
+      line-height: 1.5;
+    }
+    .scroll-indicator {
+      font-size: 0.55rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(254,249,239,0.35);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      animation: scrollBounce 2.8s ease-in-out infinite;
+    }
+    .scroll-indicator::after {
+      content: '';
+      display: block;
+      width: 1px;
+      height: 2.5rem;
+      background: linear-gradient(to bottom, rgba(254,249,239,0.35), transparent);
+    }
+    @keyframes scrollBounce {
+      0%, 100% { transform: translateY(-4px); opacity: 1; }
+      50%       { transform: translateY(4px);  opacity: 0.7; }
+    }
+
+    /* ─── DIRECTORS CIRCULAR CAROUSEL ─── */
+    #directors-section {
+      position: relative;
+      /* The gallery is fixed; this section creates scroll height for the JS to consume */
+      height: 600vh;
+      z-index: 5;
+    }
+    /* The FIXED gallery container — exactly like Scheme Engine */
+    .gallery {
+      position: fixed;
+      width: 200%;
+      height: 100%;
+      left: -50%;
+      top: 0;
+      overflow: hidden;
+      z-index: 5;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+    .gallery.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+    /* Each director text item orbits around the center */
+    .item {
+      position: absolute;
+      top: 0; left: 0;
+      transform: translate(-50%, -50%);
+      width: 50rem;
+      height: 5rem;
+      cursor: none;
+      transition: all 0.5s cubic-bezier(0.25,0.46,0.45,0.94);
+      z-index: 2;
+      opacity: 0.45;
+      text-align: center;
+      display: grid;
+      place-items: center;
+    }
+    .item.center { opacity: 1; z-index: 3; }
+    .item:hover  { z-index: 4; }
+    .item p {
+      width: 100%;
+      font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+      text-transform: uppercase;
+      color: var(--white);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      transition: color 0.3s ease;
+      line-height: 1;
+    }
+    .item.center p { color: var(--brown); }
+    .item:not(.center):hover p { color: rgba(254,249,239,0.8); }
+    .item p .role-tag {
+      display: inline;
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      font-weight: 400;
+      opacity: 0.6;
+      padding-left: 1rem;
+      text-transform: uppercase;
+      vertical-align: middle;
+    }
+
+    /* Each video/image preview card */
+    .video-item {
+      position: absolute;
+      top: 0; left: 0;
+      transform: translate(-50%, -50%);
+      width: 35rem;
+      aspect-ratio: 16/9;
+      z-index: 1;
+      border-radius: 1.2rem;
+      transition: all 0.5s cubic-bezier(0.25,0.46,0.45,0.94);
+      opacity: 0.45;
+      overflow: hidden;
+    }
+    .video-item.center { opacity: 1; z-index: 4; border-radius: 0.8rem; }
+    .video-item img,
+    .video-item video {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Pulsing corner bracket marks — exactly from Scheme Engine */
+    .corner-highlights {
+      --pos: -1.4rem;
+      position: absolute;
+      top: var(--pos); left: var(--pos); right: var(--pos); bottom: var(--pos);
+      pointer-events: none;
+      z-index: 6;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .video-item.center .corner-highlights { opacity: 1; }
+    .corner-highlight {
+      position: absolute;
+      width: 1.8rem; height: 1.8rem;
+      border: 2px solid var(--white);
+    }
+    .corner-highlight.top-left    { top:0; left:0;   border-right:none; border-bottom:none; }
+    .corner-highlight.top-right   { top:0; right:0;  border-left:none;  border-bottom:none; }
+    .corner-highlight.bottom-left { bottom:0; left:0; border-right:none; border-top:none; }
+    .corner-highlight.bottom-right{ bottom:0; right:0; border-left:none; border-top:none; }
+    .video-item.center .corner-highlight { animation: cornerPulse 2s ease-in-out infinite; }
+    @keyframes cornerPulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50%       { transform: scale(1.12); opacity: 0.7; }
+    }
+
+    /* Section header (floating while gallery is visible) */
+    .gallery-header {
+      position: fixed;
+      top: calc(var(--nav-h) + 2rem);
+      left: var(--space);
+      z-index: 50;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+    .gallery-header.visible { opacity: 1; }
+    .gallery-header .section-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--brown);
+      margin-bottom: 0.3rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .gallery-header .section-label::before {
+      content: '';
+      display: block;
+      width: 1.5rem; height: 1px;
+      background: var(--brown);
+    }
+    .gallery-header h2 {
+      font-size: clamp(1rem, 2.5vw, 1.8rem);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .gallery-counter {
+      position: fixed;
+      bottom: 2rem;
+      right: var(--space);
+      z-index: 50;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      color: rgba(254,249,239,0.5);
+      font-family: 'Courier New', monospace;
+    }
+    .gallery-counter.visible { opacity: 1; }
+
+    /* ─── WORKS SECTION ─── */
+    #works {
+      position: relative;
+      z-index: 10;
+      padding: 8rem var(--space) 6rem;
+      background: linear-gradient(to bottom, var(--bg) 0%, var(--purple) 100%);
+    }
+    .works-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 4rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+    }
+    .works-header h2 {
+      font-size: clamp(2rem, 5vw, 4rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+    .works-header .view-all {
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--brown);
+      border-bottom: 1px solid var(--brown);
+      padding-bottom: 0.1rem;
+      transition: color 0.25s;
+    }
+    .works-header .view-all:hover { color: var(--white); border-color: var(--white); }
+
+    .works-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 2rem;
+    }
+    .work-card {
+      position: relative;
+      cursor: none;
+      overflow: hidden;
+    }
+    .work-card-img {
+      aspect-ratio: 16/9;
+      background: var(--panel);
+      overflow: hidden;
+      position: relative;
+    }
+    .work-card-img img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.7s cubic-bezier(0.25,0.46,0.45,0.94), filter 0.7s;
+      filter: grayscale(30%) brightness(0.85);
+    }
+    .work-card:hover .work-card-img img {
+      transform: scale(1.06);
+      filter: grayscale(0%) brightness(1);
+    }
+    .work-card-overlay {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+      padding: 2rem 1.2rem 1.2rem;
+      transform: translateY(0.5rem);
+      opacity: 0;
+      transition: transform 0.4s ease, opacity 0.4s ease;
+    }
+    .work-card:hover .work-card-overlay { transform: translateY(0); opacity: 1; }
+    .work-card-overlay .card-category {
+      font-size: 0.58rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--brown);
+      margin-bottom: 0.3rem;
+    }
+    .work-card-overlay .card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .work-card-meta {
+      padding: 1rem 0 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border);
+      margin-top: 0.8rem;
+    }
+    .work-card-meta .card-brand { font-size: 0.72rem; font-weight: 600; color: var(--white); }
+    .work-card-meta .card-dir  { font-size: 0.65rem; color: rgba(254,249,239,0.5); letter-spacing: 0.08em; }
+
+    /* ─── PULL QUOTE ─── */
+    #quote-section {
+      position: relative;
+      z-index: 10;
+      padding: 10rem var(--space);
+      text-align: center;
+      background: var(--purple);
+    }
+    .pull-quote {
+      font-size: clamp(1.8rem, 4vw, 3.5rem);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      max-width: 860px;
+      margin: 0 auto;
+      color: var(--white);
+    }
+    .pull-quote em {
+      color: var(--brown);
+      font-style: italic;
+    }
+    .quote-attr {
+      margin-top: 2rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: rgba(254,249,239,0.4);
+    }
+
+    /* ─── ABOUT SECTION ─── */
+    #about {
+      position: relative;
+      z-index: 10;
+      padding: 8rem var(--space) 6rem;
+      background: var(--purple);
+    }
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.6fr;
+      gap: 5rem;
+      align-items: start;
+    }
+    .about-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--brown);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .about-label::before {
+      content: '';
+      display: block;
+      width: 1.5rem; height: 1px;
+      background: var(--brown);
+    }
+    .about-left h2 {
+      font-size: clamp(2.2rem, 4.5vw, 4rem);
+      font-weight: 700;
+      line-height: 1.05;
+      letter-spacing: -0.025em;
+    }
+    .about-right p {
+      font-size: 0.95rem;
+      line-height: 1.85;
+      color: rgba(254,249,239,0.72);
+      margin-bottom: 1.5rem;
+    }
+    .badge-maroon {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--maroon);
+      border: 1px solid var(--maroon-2);
+      color: var(--white);
+      font-size: 0.58rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      padding: 0.3rem 0.8rem;
+      margin-bottom: 1rem;
+      font-weight: 700;
+    }
+    .badge-maroon::before {
+      content: '';
+      display: block;
+      width: 6px; height: 6px;
+      background: var(--maroon-2);
+      border-radius: 50%;
+    }
+    .experience-block {
+      margin-top: 2.5rem;
+      padding-top: 2.5rem;
+      border-top: 1px solid var(--border);
+    }
+    .exp-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 0.8rem 0;
+      border-bottom: 1px solid rgba(52,32,58,0.4);
+    }
+    .exp-row .exp-role { font-size: 0.85rem; font-weight: 600; }
+    .exp-row .exp-co   { font-size: 0.72rem; color: var(--brown); }
+    .exp-row .exp-yr   { font-size: 0.65rem; color: rgba(254,249,239,0.35); font-family: 'Courier New', monospace; }
+
+    /* ─── FOOTER ─── */
+    footer {
+      position: relative;
+      z-index: 10;
+      background: #000;
+      padding: 6rem var(--space) 2.5rem;
+      overflow: hidden;
+    }
+    .footer-stamp {
+      font-size: clamp(4rem, 10vw, 12rem);
+      font-weight: 900;
+      line-height: 0.88;
+      letter-spacing: -0.05em;
+      color: var(--border);
+      pointer-events: none;
+      user-select: none;
+      margin-bottom: 4rem;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 3rem;
+      padding-top: 3rem;
+      border-top: 1px solid var(--border);
+    }
+    .footer-col-label {
+      font-size: 0.58rem;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--brown);
+      margin-bottom: 1.2rem;
+    }
+    .footer-link {
+      display: block;
+      font-size: 0.82rem;
+      color: rgba(254,249,239,0.65);
+      margin-bottom: 0.6rem;
+      transition: color 0.25s;
+    }
+    .footer-link:hover { color: var(--white); }
+    .footer-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: var(--maroon);
+      border: 1px solid var(--maroon-2);
+      color: var(--white);
+      padding: 0.85rem 1.8rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      font-weight: 700;
+      cursor: none;
+      transition: background 0.25s, box-shadow 0.25s;
+      box-shadow: 0 0 0 rgba(88,17,26,0);
+    }
+    .footer-cta:hover {
+      background: var(--maroon-2);
+      box-shadow: 0 0 25px rgba(88,17,26,0.6);
+    }
+    .footer-cta svg { width: 0.9rem; height: 0.9rem; fill: currentColor; }
+    .footer-bottom {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(52,32,58,0.4);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      color: rgba(254,249,239,0.25);
+    }
+
+    /* ═══════════════════════════════════════════════
+       RESPONSIVENESS
+    ═══════════════════════════════════════════════ */
+    @media (max-width: 900px) {
+      :root { --space: 5vw; }
+      .about-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 2rem; }
+      .item { width: 85vw; }
+      .video-item { width: 80vw; }
+    }
+    @media (max-width: 600px) {
+      .footer-stamp { font-size: 3.5rem; }
+      .footer-grid { grid-template-columns: 1fr; }
+      .nav-left .nav-link:last-child,
+      .nav-right .nav-link:first-child { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- CUSTOM CURSOR -->
+<div id="cursor"></div>
+<div id="cursor-halo"></div>
+
+<!-- WEBGL SHADER CANVAS (fullscreen background) -->
+<canvas id="glCanvas"></canvas>
+
+<!-- SHADER CONTROLS PANEL -->
+<div id="shaderControls">
+  <button id="shaderToggle">⌁ SHADER CONTROLS</button>
+  <div id="shaderPanel">
+    <h3>SHADER CONTROLS</h3>
+
+    <div class="ctrl-btns">
+      <button id="pauseBtn">PAUSE</button>
+      <button id="resetBtn">RESET</button>
+    </div>
+
+    <div class="ctrl-section">
+      <div class="ctrl-label">Speed <span id="speedVal">1.0×</span></div>
+      <div class="ctrl-row">
+        <label>→</label>
+        <input type="range" id="speedSlider" min="0" max="3" step="0.05" value="1">
+      </div>
+    </div>
+
+    <!-- Color controls generated by JS for Color 1-7 -->
+    <div id="colorControlsContainer"></div>
+  </div>
+</div>
+
+<!-- NAVIGATION HEADER -->
+<header>
+  <nav class="nav-left">
+    <a href="#directors-section" class="nav-link">Directors</a>
+    <a href="#works" class="nav-link">Work</a>
+  </nav>
+
+  <a href="#" class="brand-monogram">
+    <span class="mono-badge">S·A</span>
+    <span class="mono-name">Shatma Aaliya</span>
+  </a>
+
+  <nav class="nav-right">
+    <a href="#about" class="nav-link">Film &amp; Fashion</a>
+    <a href="#" class="nav-link">Contact</a>
+  </nav>
+</header>
+
+<!-- PAGE WRAPPER -->
+<div id="page-wrapper">
+
+  <!-- ══ HERO SECTION ══ -->
+  <section id="hero">
+    <div class="hero-inner">
+      <div class="hero-kicker">Haute Couture Atelier</div>
+
+      <h1 class="hero-h1">
+        We create from the<br>
+        <span class="highlight">culture we live.</span>
+      </h1>
+
+      <p class="hero-body">
+        Shatma Aaliya is a culture-first fashion design studio championing
+        the most resonant, diverse voices in couture, editorial, and music.
+        Impactful storytelling rooted in lived experience.
+      </p>
+
+      <a href="#" class="cta-link">
+        <svg viewBox="0 0 24 24"><path d="M12.793 19.793l3.793-3.793H6l-.1-.005a1 1 0 01-.9-.995V4h2v11H16.586l-3.793-3.793 1.414-1.414 5.5 5.5a1 1 0 010 1.414l-5.5 5.5-1.414-1.414z"/></svg>
+        INITIATE COMMISSION
+      </a>
+    </div>
+
+    <!-- Bottom meta -->
+    <div class="hero-meta">
+      <div class="meta-badge">
+        COUTURE DESIGN STUDIO<br>
+        PRODUCTION & EDITORIAL
+      </div>
+      <div class="scroll-indicator">SCROLL</div>
+      <div class="meta-badge" style="text-align:right">
+        EST. 2020<br>
+        INDIA — GLOBAL
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ DIRECTORS CIRCULAR CAROUSEL ══ -->
+  <!-- This section creates scroll "space" — gallery is fixed and driven by ScrollTrigger -->
+  <section id="directors-section">
+    <!-- Floating section label (shows while gallery is active) -->
+    <div class="gallery-header" id="galleryHeader">
+      <div class="section-label">Couture Auteurs</div>
+      <h2>Featured<br>Designers</h2>
+    </div>
+    <!-- Scroll counter -->
+    <div class="gallery-counter" id="galleryCounter">01 / 06</div>
+  </section>
+
+  <!-- FIXED GALLERY (position:fixed, driven by JS) -->
+  <div class="gallery" id="gallery">
+    <!-- Items injected by JS -->
+  </div>
+
+  <!-- ══ WORKS SECTION ══ -->
+  <section id="works">
+    <div class="works-header">
+      <h2>Selected<br>Work</h2>
+      <a href="#" class="view-all">View All Work →</a>
+    </div>
+    <div class="works-grid" id="worksGrid">
+      <!-- Cards injected by JS -->
+    </div>
+  </section>
+
+  <!-- ══ PULL QUOTE ══ -->
+  <section id="quote-section">
+    <blockquote class="pull-quote">
+      "The future does not look like the past.<br>
+      <em>Neither do we.</em>"
+    </blockquote>
+    <p class="quote-attr">— Shatma Aaliya, Design Manifesto</p>
+  </section>
+
+  <!-- ══ ABOUT / EXPERIENCE ══ -->
+  <section id="about">
+    <div class="about-grid">
+      <div class="about-left">
+        <div class="about-label">Representation</div>
+        <h2>Shatma<br>Aaliya</h2>
+      </div>
+      <div class="about-right">
+        <div class="badge-maroon">HAUTE COUTURE ARCHIVE</div>
+        <p>
+          A fashion designer and creative director whose work bridges the gap between
+          South Asian textile tradition and contemporary silhouette architecture.
+          Every garment is a manifesto — a declaration that beauty is a form of resistance.
+        </p>
+        <p>
+          Working across haute couture, editorial fashion, runway production, and music
+          visuals, the studio approaches each project with a deep commitment to craft,
+          cultural fluency, and radical elegance.
+        </p>
+
+        <div class="experience-block">
+          <div class="badge-maroon">COUTURE APPRENTICESHIP</div>
+          <div class="exp-row">
+            <span class="exp-role">Lead Fashion Designer</span>
+            <span class="exp-co">Neelgar</span>
+            <span class="exp-yr">2022–PRESENT</span>
+          </div>
+          <div class="exp-row">
+            <span class="exp-role">Editorial Stylist</span>
+            <span class="exp-co">Independent</span>
+            <span class="exp-yr">2020–2022</span>
+          </div>
+          <div class="exp-row">
+            <span class="exp-role">Pattern Development</span>
+            <span class="exp-co">Atelier Studio</span>
+            <span class="exp-yr">2019–2020</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ FOOTER ══ -->
+  <footer>
+    <div class="footer-stamp">SHATMA<br>AALIYA</div>
+    <div class="footer-grid">
+      <div>
+        <div class="footer-col-label">Commission</div>
+        <a href="mailto:shaimaaaliya840@gmail.com" class="footer-link">shaimaaaliya840@gmail.com</a>
+        <a href="tel:+918404916721" class="footer-link">+91 840 491 6721</a>
+        <br>
+        <a href="#" class="footer-cta">
+          <svg viewBox="0 0 24 24"><path d="M12.793 19.793l3.793-3.793H6l-.1-.005a1 1 0 01-.9-.995V4h2v11H16.586l-3.793-3.793 1.414-1.414 5.5 5.5a1 1 0 010 1.414l-5.5 5.5-1.414-1.414z"/></svg>
+          INITIATE DOSSIER
+        </a>
+      </div>
+      <div>
+        <div class="footer-col-label">Discipline</div>
+        <a href="#" class="footer-link">Haute Couture</a>
+        <a href="#" class="footer-link">Editorial Fashion</a>
+        <a href="#" class="footer-link">Runway Production</a>
+        <a href="#" class="footer-link">Textile Archive</a>
+      </div>
+      <div>
+        <div class="footer-col-label">Connect</div>
+        <a href="https://www.instagram.com/shaimaaaliya/" class="footer-link" target="_blank">Instagram</a>
+        <a href="#" class="footer-link">LinkedIn</a>
+        <a href="#" class="footer-link">Pinterest</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 SHATMA AALIYA</span>
+      <span>ALL SILHOUETTES RESERVED</span>
+    </div>
+  </footer>
+
+</div><!-- /page-wrapper -->
+
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   1. CUSTOM CURSOR
+═══════════════════════════════════════════════════════════════════ */
+const cursor      = document.getElementById('cursor');
+const cursorHalo  = document.getElementById('cursor-halo');
+let mx = -100, my = -100, hx = -100, hy = -100;
+
+window.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+
+function animateCursor() {
+  cursor.style.left = mx + 'px';
+  cursor.style.top  = my + 'px';
+  // Halo follows with lag
+  hx += (mx - hx) * 0.12;
+  hy += (my - hy) * 0.12;
+  cursorHalo.style.left = hx + 'px';
+  cursorHalo.style.top  = hy + 'px';
+  requestAnimationFrame(animateCursor);
+}
+animateCursor();
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   2. WEBGL SHADER BACKGROUND
+   — Organic flowing gradient, 7-color HSL palette, live controls
+═══════════════════════════════════════════════════════════════════ */
+(function initWebGL() {
+  const canvas = document.getElementById('glCanvas');
+
+  // Resize canvas to full screen
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    if (gl) gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+  window.addEventListener('resize', resize);
+
+  const gl = canvas.getContext('webgl', {
+    alpha: false, antialias: false, depth: false, preserveDrawingBuffer: false
+  });
+  if (!gl) { console.warn('WebGL not supported'); return; }
+
+  // — Vertex Shader (simple full-screen quad) ——————————————————
+  const VS = `
+    attribute vec2 aPos;
+    varying vec2 vUV;
+    void main() {
+      vUV = aPos * 0.5 + 0.5;
+      gl_Position = vec4(aPos, 0.0, 1.0);
+    }
+  `;
+
+  // — Fragment Shader (organic flowing gradient with 7-color palette) ——
+  const FS = `
+    precision highp float;
+    varying vec2 vUV;
+
+    uniform float uTime;
+    uniform vec2  uRes;
+    uniform vec3  uC1, uC2, uC3, uC4, uC5, uC6, uC7;
+    uniform float uA1, uA2, uA3, uA4, uA5, uA6, uA7;
+
+    // Smooth noise function
+    float hash(vec2 p) {
+      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+    float noise(vec2 p) {
+      vec2 i = floor(p), f = fract(p);
+      vec2 u = f * f * (3.0 - 2.0 * f);
+      return mix(
+        mix(hash(i), hash(i + vec2(1,0)), u.x),
+        mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), u.x),
+        u.y
+      );
+    }
+    float fbm(vec2 p) {
+      float v = 0.0, a = 0.5;
+      vec2 shift = vec2(100.0);
+      mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
+      for (int i = 0; i < 5; i++) {
+        v += a * noise(p);
+        p = rot * p * 2.0 + shift;
+        a *= 0.5;
+      }
+      return v;
+    }
+
+    void main() {
+      vec2 uv = vUV;
+      float t = uTime * 0.25;
+
+      // Build flowing organic shape
+      vec2 q = vec2(fbm(uv + t * 0.3), fbm(uv + vec2(1.7, 9.2)));
+      vec2 r = vec2(fbm(uv + 1.7 * q + vec2(1.7, 9.2) + t * 0.2),
+                    fbm(uv + 1.7 * q + vec2(8.3, 2.8) + t * 0.1));
+      float f = fbm(uv + 2.0 * r);
+
+      // Blend all 7 colors based on f and position
+      float band = f * 6.0;
+      vec3 col = vec3(0.0);
+      if      (band < 1.0) col = mix(uC1, uC2, band);
+      else if (band < 2.0) col = mix(uC2, uC3, band - 1.0);
+      else if (band < 3.0) col = mix(uC3, uC4, band - 2.0);
+      else if (band < 4.0) col = mix(uC4, uC5, band - 3.0);
+      else if (band < 5.0) col = mix(uC5, uC6, band - 4.0);
+      else                 col = mix(uC6, uC7, band - 5.0);
+
+      // Add subtle vignette
+      vec2 vign = (uv - 0.5) * 2.0;
+      float vignette = 1.0 - dot(vign, vign) * 0.3;
+      col *= vignette;
+
+      // Alpha blend from palette alphas
+      float alpha = mix(uA1, uA7, f);
+
+      gl_FragColor = vec4(col, alpha);
+    }
+  `;
+
+  function compileShader(src, type) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      console.error('Shader error:', gl.getShaderInfoLog(s));
+    }
+    return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, compileShader(VS, gl.VERTEX_SHADER));
+  gl.attachShader(prog, compileShader(FS, gl.FRAGMENT_SHADER));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+
+  // Full-screen quad
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+  const aPosLoc = gl.getAttribLocation(prog, 'aPos');
+  gl.enableVertexAttribArray(aPosLoc);
+  gl.vertexAttribPointer(aPosLoc, 2, gl.FLOAT, false, 0, 0);
+
+  const uTime = gl.getUniformLocation(prog, 'uTime');
+  const uRes  = gl.getUniformLocation(prog, 'uRes');
+  const uLocs = [1,2,3,4,5,6,7].map(i => ({
+    c: gl.getUniformLocation(prog, `uC${i}`),
+    a: gl.getUniformLocation(prog, `uA${i}`)
+  }));
+
+  // Default 7-color Scheme Engine palette (matching exact HSL from source)
+  const defaultColors = [
+    { h:276, s:75, l:9,  a:100 }, // C1 — deep eggplant
+    { h:14,  s:44, l:52, a:100 }, // C2 — amber ochre
+    { h:276, s:75, l:9,  a:100 }, // C3 — eggplant
+    { h:285, s:69, l:5,  a:100 }, // C4 — darkest violet
+    { h:276, s:75, l:9,  a:100 }, // C5 — eggplant
+    { h:271, s:63, l:28, a:100 }, // C6 — medium plum
+    { h:284, s:72, l:18, a:100 }, // C7 — deep violet
+  ];
+
+  // Convert HSL (0-360, 0-100, 0-100) → normalized RGB vec3
+  function hslToRgb(h, s, l) {
+    s /= 100; l /= 100;
+    const k = n => (n + h / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return [f(0), f(8), f(4)];
+  }
+
+  let colors = defaultColors.map(c => ({ ...c }));
+  let timeVal = 0, paused = false, speed = 1.0;
+
+  function setUniforms() {
+    gl.uniform2f(uRes, canvas.width, canvas.height);
+    colors.forEach((c, i) => {
+      const rgb = hslToRgb(c.h, c.s, c.l);
+      gl.uniform3f(uLocs[i].c, rgb[0], rgb[1], rgb[2]);
+      gl.uniform1f(uLocs[i].a, c.a / 100);
+    });
+  }
+
+  let lastTime = 0;
+  function render(ts) {
+    requestAnimationFrame(render);
+    if (!paused) {
+      const dt = (ts - lastTime) / 1000;
+      timeVal += dt * speed;
+    }
+    lastTime = ts;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.uniform1f(uTime, timeVal);
+    setUniforms();
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+
+  resize();
+  requestAnimationFrame(ts => { lastTime = ts; render(ts); });
+
+  // ── SHADER CONTROLS UI ──────────────────────────────────────
+  const colorContainer = document.getElementById('colorControlsContainer');
+  colors.forEach((c, i) => {
+    const idx = i + 1;
+    const section = document.createElement('div');
+    section.className = 'ctrl-section';
+    section.innerHTML = `
+      <div class="ctrl-label">Color ${idx} <div class="color-preview" id="preview${idx}"></div></div>
+      <div class="ctrl-row"><label>H</label>
+        <input type="range" id="c${idx}h" min="0" max="360" step="1" value="${c.h}">
+        <input type="number" id="c${idx}hn" min="0" max="360" value="${c.h}">
+      </div>
+      <div class="ctrl-row"><label>S</label>
+        <input type="range" id="c${idx}s" min="0" max="100" step="1" value="${c.s}">
+        <input type="number" id="c${idx}sn" min="0" max="100" value="${c.s}">
+      </div>
+      <div class="ctrl-row"><label>L</label>
+        <input type="range" id="c${idx}l" min="0" max="100" step="1" value="${c.l}">
+        <input type="number" id="c${idx}ln" min="0" max="100" value="${c.l}">
+      </div>
+      <div class="ctrl-row"><label>A</label>
+        <input type="range" id="c${idx}a" min="0" max="100" step="1" value="${c.a}">
+        <input type="number" id="c${idx}an" min="0" max="100" value="${c.a}">
+      </div>
+    `;
+    colorContainer.appendChild(section);
+
+    // Sync range ↔ number and update colors[]
+    ['h','s','l','a'].forEach(ch => {
+      const range = document.getElementById(`c${idx}${ch}`);
+      const num   = document.getElementById(`c${idx}${ch}n`);
+      const update = v => {
+        colors[i][ch] = parseFloat(v);
+        range.value = v; num.value = v;
+        updatePreview(idx);
+      };
+      range.addEventListener('input', e => update(e.target.value));
+      num.addEventListener('input',   e => update(e.target.value));
+    });
+
+    function updatePreview(idx) {
+      const c2 = colors[idx - 1];
+      document.getElementById(`preview${idx}`).style.background =
+        `hsla(${c2.h},${c2.s}%,${c2.l}%,${c2.a/100})`;
+    }
+    updatePreview(idx);
+  });
+
+  // Speed slider
+  const speedSlider = document.getElementById('speedSlider');
+  const speedVal    = document.getElementById('speedVal');
+  speedSlider.addEventListener('input', e => {
+    speed = parseFloat(e.target.value);
+    speedVal.textContent = speed.toFixed(1) + '×';
+  });
+
+  // Pause / Reset
+  document.getElementById('pauseBtn').addEventListener('click', () => {
+    paused = !paused;
+    document.getElementById('pauseBtn').textContent = paused ? 'PLAY' : 'PAUSE';
+  });
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    timeVal = 0;
+    colors = defaultColors.map(c => ({ ...c }));
+    colors.forEach((c, i) => {
+      ['h','s','l','a'].forEach(ch => {
+        const range = document.getElementById(`c${i+1}${ch}`);
+        const num   = document.getElementById(`c${i+1}${ch}n`);
+        if (range) { range.value = c[ch]; num.value = c[ch]; }
+      });
+      const prev = document.getElementById(`preview${i+1}`);
+      if (prev) prev.style.background = `hsla(${c.h},${c.s}%,${c.l}%,${c.a/100})`;
+    });
+    speed = 1;
+    speedSlider.value = 1;
+    speedVal.textContent = '1.0×';
+  });
+
+  // Toggle panel
+  document.getElementById('shaderToggle').addEventListener('click', () => {
+    document.getElementById('shaderPanel').classList.toggle('open');
+  });
+
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   3. DATA — Directors/Designers & Works
+═══════════════════════════════════════════════════════════════════ */
+const DIRECTORS = [
+  {
+    name: 'Shatma Aaliya',
+    role: 'Couture Director',
+    color: '#D18221',
+    // Use a high-quality Unsplash image as a placeholder for video preview
+    thumb: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80'
+  },
+  {
+    name: 'Neelgar Studio',
+    role: 'Atelier',
+    color: '#FEF9EF',
+    thumb: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=800&q=80'
+  },
+  {
+    name: 'Runway Lab',
+    role: 'Production',
+    color: '#A692A8',
+    thumb: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=800&q=80'
+  },
+  {
+    name: 'Handloom Archive',
+    role: 'Textile Direction',
+    color: '#D18221',
+    thumb: 'https://images.unsplash.com/photo-1631160299719-7f2c7cd31c4e?w=800&q=80'
+  },
+  {
+    name: 'Silhouette Edit',
+    role: 'Editorial',
+    color: '#FEF9EF',
+    thumb: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80'
+  },
+  {
+    name: 'Zardozi Atlas',
+    role: 'Embroidery Archive',
+    color: '#A692A8',
+    thumb: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=800&q=80'
+  },
+];
+
+const WORKS = [
+  {
+    title: 'SS26 Runway Collection',
+    brand: 'Neelgar',
+    director: 'Shatma Aaliya',
+    category: 'Haute Couture',
+    thumb: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80'
+  },
+  {
+    title: 'Midnight Corsetry',
+    brand: 'Independent',
+    director: 'Shatma Aaliya',
+    category: 'Femme Fatale',
+    thumb: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=800&q=80'
+  },
+  {
+    title: 'Monsoon Drape Edit',
+    brand: 'Atelier Studio',
+    director: 'Shatma Aaliya',
+    category: 'Bespoke',
+    thumb: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=800&q=80'
+  },
+  {
+    title: 'Golden Hour Archive',
+    brand: 'Neelgar',
+    director: 'Shatma Aaliya',
+    category: 'Handloom',
+    thumb: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80'
+  },
+  {
+    title: 'Nuit Blanche',
+    brand: 'Editorial',
+    director: 'Shatma Aaliya',
+    category: 'Runway Styling',
+    thumb: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=800&q=80'
+  },
+  {
+    title: 'Zardozi Manifesto',
+    brand: 'Archive Studio',
+    director: 'Shatma Aaliya',
+    category: 'Embroidery',
+    thumb: 'https://images.unsplash.com/photo-1631160299719-7f2c7cd31c4e?w=800&q=80'
+  },
+];
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   4. CIRCULAR CAROUSEL GALLERY  (Scheme Engine scroll mechanic)
+   
+   How it works exactly like Scheme Engine:
+   - The gallery div is position:fixed (200% wide, left:-50%)
+   - Items (text + image cards) are placed at angles around a circle
+   - As the user scrolls through #directors-section (height: 600vh),
+     the entire circle ROTATES so each item passes through center
+   - The "center" item gets full opacity + color + corner brackets
+═══════════════════════════════════════════════════════════════════ */
+(function initGallery() {
+  const gallery       = document.getElementById('gallery');
+  const galleryHeader = document.getElementById('galleryHeader');
+  const galleryCounter= document.getElementById('galleryCounter');
+  const section       = document.getElementById('directors-section');
+  const N             = DIRECTORS.length;
+
+  // Build DOM — one .item (text) and one .video-item (image) per director
+  const textItems  = [];
+  const imageItems = [];
+
+  DIRECTORS.forEach((d, i) => {
+    // Text row
+    const item = document.createElement('div');
+    item.className = 'item';
+    item.innerHTML = `<p>${d.name}<span class="role-tag">${d.role}</span></p>`;
+    item.style.setProperty('--p-color', d.color);
+    gallery.appendChild(item);
+    textItems.push(item);
+
+    // Image card
+    const vitem = document.createElement('div');
+    vitem.className = 'video-item';
+    vitem.innerHTML = `
+      <img src="${d.thumb}" alt="${d.name}" loading="lazy">
+      <div class="corner-highlights">
+        <div class="corner-highlight top-left"></div>
+        <div class="corner-highlight top-right"></div>
+        <div class="corner-highlight bottom-left"></div>
+        <div class="corner-highlight bottom-right"></div>
+      </div>
+    `;
+    gallery.appendChild(vitem);
+    imageItems.push(vitem);
+  });
+
+  // Place items on a circle around the center of the 200%-wide gallery
+  // The center of the gallery viewport is at cx = 50% of 200% wide = 100% window width
+  function getCircle() {
+    const cx = window.innerWidth;           // center X of 200% wide container
+    const cy = window.innerHeight / 2;      // vertical center
+    const radius = Math.min(window.innerWidth, window.innerHeight) * 0.38;
+    return { cx, cy, radius };
+  }
+
+  let currentAngle = 0; // tracks the rotation offset in radians
+
+  function layoutItems(offsetAngle) {
+    const { cx, cy, radius } = getCircle();
+    const textR  = radius * 2.2;   // text items on a larger radius
+    const imageR = radius * 0.8;   // image items on inner radius
+
+    // Which index is "at top/center" (angle = -PI/2 = pointing up = visible center)
+    // We offset each item by 2*PI/N * i, plus the current rotation offset
+    const centerAngle = -Math.PI / 2; // 12 o'clock position
+
+    textItems.forEach((item, i) => {
+      const angle = (2 * Math.PI / N) * i + offsetAngle;
+      const x = cx + textR * Math.cos(angle);
+      const y = cy + textR * Math.sin(angle);
+      item.style.left = x + 'px';
+      item.style.top  = y + 'px';
+
+      // Opacity based on proximity to center angle
+      const dist = Math.abs(((angle - centerAngle + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+      const norm = 1 - dist / Math.PI;
+      item.style.opacity = 0.2 + norm * 0.8;
+      item.classList.toggle('center', dist < 0.4);
+    });
+
+    imageItems.forEach((item, i) => {
+      const angle = (2 * Math.PI / N) * i + offsetAngle;
+      const x = cx + imageR * Math.cos(angle);
+      const y = cy + imageR * Math.sin(angle);
+      item.style.left = x + 'px';
+      item.style.top  = y + 'px';
+
+      const dist = Math.abs(((angle - centerAngle + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+      const norm = 1 - dist / Math.PI;
+      item.style.opacity = 0.15 + norm * 0.85;
+      item.style.transform = `translate(-50%, -50%) scale(${0.7 + norm * 0.3})`;
+      item.classList.toggle('center', dist < 0.4);
+    });
+
+    // Update counter
+    const centerIdx = Math.round((-offsetAngle / (Math.PI * 2)) * N + N) % N;
+    galleryCounter.textContent = `${String(centerIdx + 1).padStart(2,'0')} / ${String(N).padStart(2,'0')}`;
+  }
+
+  // Initial layout
+  layoutItems(0);
+  window.addEventListener('resize', () => layoutItems(currentAngle));
+
+  // Click on item to jump to it
+  textItems.forEach((item, i) => {
+    item.addEventListener('click', () => {
+      const targetAngle = -(2 * Math.PI / N) * i;
+      gsap.to({ angle: currentAngle }, {
+        angle: targetAngle,
+        duration: 0.8,
+        ease: 'power3.out',
+        onUpdate: function() { currentAngle = this.targets()[0].angle; layoutItems(currentAngle); }
+      });
+    });
+  });
+
+  /* ── SCROLL TRIGGER ──
+     When user scrolls through #directors-section, rotate the circle.
+     The section is 600vh tall; we map scroll progress 0→1 to one full rotation.
+  */
+  if (typeof ScrollTrigger !== 'undefined') {
+    ScrollTrigger.create({
+      trigger: '#directors-section',
+      start: 'top top',
+      end: 'bottom bottom',
+      scrub: 1.2,
+
+      onUpdate: self => {
+        // progress 0→1 → rotate full circle (2*PI)
+        currentAngle = -(self.progress * Math.PI * 2);
+        layoutItems(currentAngle);
+      },
+      onEnter: () => {
+        gallery.classList.add('visible');
+        galleryHeader.classList.add('visible');
+        galleryCounter.classList.add('visible');
+      },
+      onLeave: () => {
+        gallery.classList.remove('visible');
+        galleryHeader.classList.remove('visible');
+        galleryCounter.classList.remove('visible');
+      },
+      onEnterBack: () => {
+        gallery.classList.add('visible');
+        galleryHeader.classList.add('visible');
+        galleryCounter.classList.add('visible');
+      },
+      onLeaveBack: () => {
+        gallery.classList.remove('visible');
+        galleryHeader.classList.remove('visible');
+        galleryCounter.classList.remove('visible');
+      },
+    });
+  }
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   5. WORKS GRID — inject cards
+═══════════════════════════════════════════════════════════════════ */
+(function buildWorksGrid() {
+  const grid = document.getElementById('worksGrid');
+  WORKS.forEach(w => {
+    const card = document.createElement('div');
+    card.className = 'work-card';
+    card.innerHTML = `
+      <div class="work-card-img">
+        <img src="${w.thumb}" alt="${w.title}" loading="lazy">
+        <div class="work-card-overlay">
+          <div class="card-category">${w.category}</div>
+          <div class="card-title">${w.title}</div>
+        </div>
+      </div>
+      <div class="work-card-meta">
+        <span class="card-brand">${w.brand}</span>
+        <span class="card-dir">${w.director}</span>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   6. LENIS SMOOTH SCROLL + GSAP SCROLLTRIGGER
+═══════════════════════════════════════════════════════════════════ */
+(function initScroll() {
+  if (typeof Lenis === 'undefined') { console.warn('Lenis not loaded'); return; }
+
+  // Init Lenis
+  const lenis = new Lenis({
+    duration: 1.3,
+    easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // Expo ease out
+    smooth: true,
+    smoothTouch: false,
+  });
+
+  // Wire Lenis into GSAP's ticker for frame-perfect sync
+  gsap.ticker.add(time => lenis.raf(time * 1000));
+  gsap.ticker.lagSmoothing(0);
+
+  // Make ScrollTrigger listen to Lenis scroll events
+  lenis.on('scroll', ScrollTrigger.update);
+
+  // ── HERO INTRO ANIMATIONS ────────────────────────────────────
+  const heroTL = gsap.timeline({ delay: 0.3 });
+  heroTL
+    .from('.hero-kicker',  { opacity: 0, y: 20, duration: 0.7, ease: 'power3.out' })
+    .from('.hero-h1',      { opacity: 0, y: 40, duration: 0.9, ease: 'power3.out' }, '-=0.4')
+    .from('.hero-body',    { opacity: 0, y: 30, duration: 0.7, ease: 'power3.out' }, '-=0.5')
+    .from('.cta-link',     { opacity: 0, y: 20, duration: 0.6, ease: 'power3.out' }, '-=0.4')
+    .from('.hero-meta > *',{ opacity: 0, y: 10, stagger: 0.1, duration: 0.6, ease: 'power3.out' }, '-=0.3');
+
+  // ── WORKS CARDS — parallax + fade in on scroll ───────────────
+  document.querySelectorAll('.work-card').forEach((card, i) => {
+    gsap.from(card, {
+      scrollTrigger: {
+        trigger: card,
+        start: 'top 85%',
+        end: 'bottom 15%',
+        toggleActions: 'play none none reverse',
+      },
+      opacity: 0,
+      y: 60 + i * 10,
+      duration: 0.9,
+      ease: 'power3.out',
+      delay: (i % 3) * 0.12,
+    });
+
+    // Parallax on the image inside
+    gsap.to(card.querySelector('img'), {
+      scrollTrigger: {
+        trigger: card,
+        start: 'top bottom',
+        end: 'bottom top',
+        scrub: 1.5,
+      },
+      y: -40,
+      ease: 'none',
+    });
+  });
+
+  // ── PULL QUOTE — scale and fade ──────────────────────────────
+  gsap.from('.pull-quote', {
+    scrollTrigger: {
+      trigger: '#quote-section',
+      start: 'top 70%',
+      toggleActions: 'play none none reverse',
+    },
+    opacity: 0,
+    scale: 0.95,
+    y: 50,
+    duration: 1.1,
+    ease: 'power3.out',
+  });
+
+  // ── ABOUT — slide in from sides ──────────────────────────────
+  gsap.from('.about-left', {
+    scrollTrigger: {
+      trigger: '#about',
+      start: 'top 75%',
+      toggleActions: 'play none none reverse',
+    },
+    opacity: 0, x: -60, duration: 1, ease: 'power3.out',
+  });
+  gsap.from('.about-right', {
+    scrollTrigger: {
+      trigger: '#about',
+      start: 'top 75%',
+      toggleActions: 'play none none reverse',
+    },
+    opacity: 0, x: 60, duration: 1, ease: 'power3.out', delay: 0.15,
+  });
+
+  // ── EXP ROWS — stagger in ────────────────────────────────────
+  gsap.from('.exp-row', {
+    scrollTrigger: {
+      trigger: '.experience-block',
+      start: 'top 80%',
+      toggleActions: 'play none none reverse',
+    },
+    opacity: 0,
+    x: 30,
+    stagger: 0.12,
+    duration: 0.7,
+    ease: 'power3.out',
+  });
+
+  // ── FOOTER STAMP — horizontal scroll effect ──────────────────
+  gsap.to('.footer-stamp', {
+    scrollTrigger: {
+      trigger: 'footer',
+      start: 'top bottom',
+      end: 'bottom top',
+      scrub: 2,
+    },
+    x: '-5%',
+    ease: 'none',
+  });
+
+  // ── NAV — blur/opacity change on scroll ──────────────────────
+  ScrollTrigger.create({
+    start: 100,
+    onUpdate: self => {
+      const h = document.querySelector('header');
+      if (self.progress > 0) {
+        h.style.backdropFilter = 'blur(12px) saturate(1.2)';
+        h.style.background = 'rgba(10,5,15,0.6)';
+      } else {
+        h.style.backdropFilter = '';
+        h.style.background = '';
+      }
+    }
+  });
+
+})();
+
+/* ═══════════════════════════════════════════════════════════════════
+   7. VELOCITY-BASED SKEW ON SCROLL (images skew during fast scroll)
+═══════════════════════════════════════════════════════════════════ */
+(function initSkew() {
+  let lastY = 0, velocity = 0, skewSetter;
+
+  if (!window.gsap) return;
+
+  // Apply skew to all card images
+  const skewTargets = document.querySelectorAll('.work-card-img img, .video-item img');
+  skewSetter = gsap.quickTo(skewTargets, 'skewY');
+
+  let ticking = false;
+  function onScroll() {
+    if (!ticking) {
+      requestAnimationFrame(() => {
+        const y = window.pageYOffset;
+        velocity = (y - lastY) * 0.04;
+        velocity = Math.max(-8, Math.min(8, velocity)); // clamp ±8°
+        skewSetter(velocity);
+        lastY = y;
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }
+
+  // Ease back to 0 when scroll stops
+  setInterval(() => {
+    velocity *= 0.88;
+    if (Math.abs(velocity) > 0.01 && skewSetter) skewSetter(velocity);
+  }, 16);
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+})();
+</script>
+
+</body>
+</html>
