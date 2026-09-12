@@ -184,3 +184,6 @@
     cursor: none !important;
   }
 }
+
+.gallery-container.visible, .gallery-header.visible, .gallery-counter.visible { opacity: 1 !important; pointer-events: auto !important; }
+

@@ -1,15 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 
-/**
- * SchemeEngine-inspired full-viewport animated orbital background.
- * Soft, slow-moving, continuous circular/orbital blobs of color that drift
- * and blend into one another like liquid silk or smoke, looping seamlessly.
- *
- * Strictly respects the palette:
- * - Canvas Base: #110D0B (Black Sheep)
- * - Blobs: #443E3A (Joesmithite), #8B553F (Brown Patina), #C0957B (Maple Sugar)
- * - NOTE: Wine Red (#3E1011) is strictly excluded to satisfy the scope rule.
- */
 export const OrbitalBackground: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -17,153 +7,167 @@ export const OrbitalBackground: React.FC = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d', { alpha: false });
-    if (!ctx) return;
-
-    let animationFrameId: number;
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
-
-    // Orbital blob configuration
-    // Each blob revolves around a floating center with smooth continuous orbital motion
-    interface Blob {
-      baseAngle: number;
-      speed: number;
-      orbitRadiusX: number;
-      orbitRadiusY: number;
-      centerXFactor: number;
-      centerYFactor: number;
-      radius: number;
-      breathSpeed: number;
-      color: string; // rgba representation
-      opacity: number;
+    const gl = canvas.getContext('webgl', {
+      alpha: false, antialias: false, depth: false, preserveDrawingBuffer: false
+    });
+    if (!gl) {
+      console.warn('WebGL not supported');
+      return;
     }
 
-    const blobs: Blob[] = [
-      {
-        baseAngle: 0,
-        speed: 0.00035,
-        orbitRadiusX: 0.28,
-        orbitRadiusY: 0.22,
-        centerXFactor: 0.35,
-        centerYFactor: 0.4,
-        radius: 0.44,
-        breathSpeed: 0.0005,
-        color: '88, 17, 26', // Deep Maroon (#58111A)
-        opacity: 0.28
-      },
-      {
-        baseAngle: Math.PI * 0.7,
-        speed: -0.00028,
-        orbitRadiusX: 0.32,
-        orbitRadiusY: 0.26,
-        centerXFactor: 0.65,
-        centerYFactor: 0.55,
-        radius: 0.48,
-        breathSpeed: 0.00045,
-        color: '74, 27, 115', // Royal Deep Plum (#4A1B73)
-        opacity: 0.26
-      },
-      {
-        baseAngle: Math.PI * 1.3,
-        speed: 0.00025,
-        orbitRadiusX: 0.24,
-        orbitRadiusY: 0.3,
-        centerXFactor: 0.5,
-        centerYFactor: 0.32,
-        radius: 0.36,
-        breathSpeed: 0.0006,
-        color: '209, 130, 33', // Scheme Engine Amber Ochre (#D18221)
-        opacity: 0.16
-      },
-      {
-        baseAngle: Math.PI * 1.8,
-        speed: -0.00032,
-        orbitRadiusX: 0.22,
-        orbitRadiusY: 0.18,
-        centerXFactor: 0.25,
-        centerYFactor: 0.7,
-        radius: 0.40,
-        breathSpeed: 0.0004,
-        color: '49, 13, 72', // Dark Violet (#310D48)
-        opacity: 0.30
-      },
-      {
-        baseAngle: Math.PI * 0.4,
-        speed: 0.00038,
-        orbitRadiusX: 0.35,
-        orbitRadiusY: 0.25,
-        centerXFactor: 0.75,
-        centerYFactor: 0.3,
-        radius: 0.38,
-        breathSpeed: 0.00055,
-        color: '103, 20, 32', // Rich Vivid Maroon (#671420)
-        opacity: 0.22
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    };
+    window.addEventListener('resize', resize);
+    resize();
+
+    const VS = `
+      attribute vec2 aPos;
+      varying vec2 vUV;
+      void main() {
+        vUV = aPos * 0.5 + 0.5;
+        gl_Position = vec4(aPos, 0.0, 1.0);
       }
-    ];
+    `;
 
-    let lastTime = performance.now();
+    const FS = `
+      precision highp float;
+      varying vec2 vUV;
 
-    const handleResize = () => {
-      if (!canvas) return;
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+      uniform float uTime;
+      uniform vec2  uRes;
+      uniform vec3  uC1, uC2, uC3, uC4, uC5, uC6, uC7;
+      uniform float uA1, uA2, uA3, uA4, uA5, uA6, uA7;
+
+      float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+      }
+      float noise(vec2 p) {
+        vec2 i = floor(p), f = fract(p);
+        vec2 u = f * f * (3.0 - 2.0 * f);
+        return mix(
+          mix(hash(i), hash(i + vec2(1,0)), u.x),
+          mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), u.x),
+          u.y
+        );
+      }
+      float fbm(vec2 p) {
+        float v = 0.0, a = 0.5;
+        vec2 shift = vec2(100.0);
+        mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
+        for (int i = 0; i < 5; i++) {
+          v += a * noise(p);
+          p = rot * p * 2.0 + shift;
+          a *= 0.5;
+        }
+        return v;
+      }
+
+      void main() {
+        vec2 uv = vUV;
+        float t = uTime * 0.25;
+
+        vec2 q = vec2(fbm(uv + t * 0.3), fbm(uv + vec2(1.7, 9.2)));
+        vec2 r = vec2(fbm(uv + 1.7 * q + vec2(1.7, 9.2) + t * 0.2),
+                      fbm(uv + 1.7 * q + vec2(8.3, 2.8) + t * 0.1));
+        float f = fbm(uv + 2.0 * r);
+
+        float band = f * 6.0;
+        vec3 col = vec3(0.0);
+        if      (band < 1.0) col = mix(uC1, uC2, band);
+        else if (band < 2.0) col = mix(uC2, uC3, band - 1.0);
+        else if (band < 3.0) col = mix(uC3, uC4, band - 2.0);
+        else if (band < 4.0) col = mix(uC4, uC5, band - 3.0);
+        else if (band < 5.0) col = mix(uC5, uC6, band - 4.0);
+        else                 col = mix(uC6, uC7, band - 5.0);
+
+        vec2 vign = (uv - 0.5) * 2.0;
+        float vignette = 1.0 - dot(vign, vign) * 0.3;
+        col *= vignette;
+
+        float alpha = mix(uA1, uA7, f);
+        gl_FragColor = vec4(col, alpha);
+      }
+    `;
+
+    const compileShader = (src: string, type: number) => {
+      const s = gl.createShader(type)!;
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+        console.error('Shader error:', gl.getShaderInfoLog(s));
+      }
+      return s;
     };
 
-    window.addEventListener('resize', handleResize, { passive: true });
+    const prog = gl.createProgram()!;
+    gl.attachShader(prog, compileShader(VS, gl.VERTEX_SHADER));
+    gl.attachShader(prog, compileShader(FS, gl.FRAGMENT_SHADER));
+    gl.linkProgram(prog);
+    gl.useProgram(prog);
 
-    const render = (time: number) => {
-      const elapsed = time;
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+    const aPosLoc = gl.getAttribLocation(prog, 'aPos');
+    gl.enableVertexAttribArray(aPosLoc);
+    gl.vertexAttribPointer(aPosLoc, 2, gl.FLOAT, false, 0, 0);
 
-      // Base: #140D16 (Scheme Engine Deep Aubergine Obsidian)
-      ctx.fillStyle = '#140D16';
-      ctx.fillRect(0, 0, width, height);
+    const uTime = gl.getUniformLocation(prog, 'uTime');
+    const uRes  = gl.getUniformLocation(prog, 'uRes');
+    const uLocs = [1,2,3,4,5,6,7].map(i => ({
+      c: gl.getUniformLocation(prog, \`uC\${i}\`),
+      a: gl.getUniformLocation(prog, \`uA\${i}\`)
+    }));
 
-      // Blending mode for seamless silk / smoke diffusion
-      ctx.globalCompositeOperation = 'screen';
+    // Scheme Engine style exact palette
+    const defaultColors = [
+      { h:276, s:75, l:9,  a:100 }, 
+      { h:14,  s:44, l:52, a:100 }, 
+      { h:276, s:75, l:9,  a:100 }, 
+      { h:285, s:69, l:5,  a:100 }, 
+      { h:276, s:75, l:9,  a:100 }, 
+      { h:271, s:63, l:28, a:100 }, 
+      { h:284, s:72, l:18, a:100 }, 
+    ];
 
-      const minDim = Math.min(width, height);
-      const maxDim = Math.max(width, height);
+    const hslToRgb = (h: number, s: number, l: number) => {
+      s /= 100; l /= 100;
+      const k = (n: number) => (n + h / 30) % 12;
+      const a = s * Math.min(l, 1 - l);
+      const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+      return [f(0), f(8), f(4)];
+    };
 
-      blobs.forEach((blob) => {
-        // Continuous circular/orbital revolution
-        const angle = blob.baseAngle + elapsed * blob.speed;
-        
-        // Slow hypnotic breathing pulsation
-        const breath = Math.sin(elapsed * blob.breathSpeed) * 0.08;
-        const currentRadius = (blob.radius + breath) * maxDim;
+    let timeVal = 0;
+    let lastTime = performance.now();
+    let animationFrameId: number;
 
-        // Position coordinates along orbital ellipses
-        const cx = (blob.centerXFactor + Math.cos(angle) * blob.orbitRadiusX) * width;
-        const cy = (blob.centerYFactor + Math.sin(angle) * blob.orbitRadiusY) * height;
+    const render = (ts: number) => {
+      animationFrameId = requestAnimationFrame(render);
+      const dt = (ts - lastTime) / 1000;
+      timeVal += dt;
+      lastTime = ts;
 
-        // Radial gradient with gaussian soft-falloff
-        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(currentRadius, 20));
-        grad.addColorStop(0, `rgba(${blob.color}, ${blob.opacity})`);
-        grad.addColorStop(0.35, `rgba(${blob.color}, ${blob.opacity * 0.65})`);
-        grad.addColorStop(0.7, `rgba(${blob.color}, ${blob.opacity * 0.2})`);
-        grad.addColorStop(1, `rgba(${blob.color}, 0)`);
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.uniform1f(uTime, timeVal);
+      gl.uniform2f(uRes, canvas.width, canvas.height);
 
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(cx, cy, currentRadius, 0, Math.PI * 2);
-        ctx.fill();
+      defaultColors.forEach((c, i) => {
+        const rgb = hslToRgb(c.h, c.s, c.l);
+        gl.uniform3f(uLocs[i].c!, rgb[0], rgb[1], rgb[2]);
+        gl.uniform1f(uLocs[i].a!, c.a / 100);
       });
 
-      // Reset composite operation
-      ctx.globalCompositeOperation = 'source-over';
-
-      // Subtle atmospheric noise / vignette overlay to keep text ultra sharp
-      ctx.fillStyle = 'rgba(20, 13, 22, 0.38)';
-      ctx.fillRect(0, 0, width, height);
-
-      animationFrameId = requestAnimationFrame(render);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
 
     animationFrameId = requestAnimationFrame(render);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', resize);
       cancelAnimationFrame(animationFrameId);
     };
   }, []);
@@ -171,9 +175,9 @@ export const OrbitalBackground: React.FC = () => {
   return (
     <canvas
       ref={canvasRef}
-      id="schemeengine-orbital-canvas"
+      id="schemeengine-gl-canvas"
       aria-hidden="true"
-      className="fixed inset-0 w-full h-full pointer-events-none z-0 filter blur-[40px] md:blur-[65px] opacity-90 transition-opacity duration-1000"
+      className="fixed inset-0 w-full h-full pointer-events-none z-0"
     />
   );
 };

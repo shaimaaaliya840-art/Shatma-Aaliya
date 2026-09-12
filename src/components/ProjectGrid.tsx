@@ -109,9 +109,9 @@ export const ProjectGrid: React.FC<ProjectGridProps> = ({
               {/* Card Visual with Editorial Ratio */}
               <div className="aspect-[16/10] overflow-hidden bg-[#140D16] relative mb-6 border border-[#34203A]">
                 <img
-                  src={project.heroImage}
+                  src={project.heroImage || project.mainImage}
                   alt={project.title}
-                  className="w-full h-full object-cover grayscale contrast-125 opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700 ease-out"
+                  className="w-full h-full object-cover grayscale contrast-125 opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700 ease-out skew-on-scroll"
                 />
                 
                 {/* Important Deep Maroon Tag Pill */}
